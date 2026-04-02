@@ -52,12 +52,19 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
 
 # --- Programs ---
 
+class DuplicateError(Exception):
+    pass
+
+
 def create_program(name: str, description: str | None) -> dict:
     with get_connection() as conn:
-        cursor = conn.execute(
-            "INSERT INTO programs (name, description, created_at) VALUES (?, ?, ?)",
-            (name, description, _now()),
-        )
+        try:
+            cursor = conn.execute(
+                "INSERT INTO programs (name, description, created_at) VALUES (?, ?, ?)",
+                (name, description, _now()),
+            )
+        except sqlite3.IntegrityError:
+            raise DuplicateError(f"Program '{name}' already exists")
         row = conn.execute(
             "SELECT * FROM programs WHERE id = ?", (cursor.lastrowid,)
         ).fetchone()

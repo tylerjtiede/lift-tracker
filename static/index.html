@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lift Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f0f0f;
+      --surface:  #1a1a1a;
+      --border:   #2a2a2a;
+      --accent:   #e8ff47;
+      --text:     #f0f0f0;
+      --muted:    #777;
+      --danger:   #ff5f5f;
+      --success:  #4fde9a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    header h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    nav {
+      display: flex;
+      gap: 0.25rem;
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+
+    nav button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.875rem 1rem;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    nav button.active, nav button:hover {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .tab { display: none; }
+    .tab.active { display: block; }
+
+    h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .card-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+      min-width: 120px;
+    }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select, textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 0.5rem 0.75rem;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    select option { background: var(--surface); }
+
+    button[type="submit"], .btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 5px;
+      color: #000;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 700;
+      padding: 0.55rem 1.25rem;
+      transition: opacity 0.15s;
+    }
+
+    button[type="submit"]:hover, .btn:hover { opacity: 0.85; }
+
+    .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-ghost:hover { border-color: var(--accent); background: none; }
+
+    .sets-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-top: 0.75rem;
+    }
+
+    .sets-table th {
+      text-align: left;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.4rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sets-table td {
+      padding: 0.45rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .badge {
+      display: inline-block;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-improving { background: #1a3a2a; color: var(--success); }
+    .badge-stalling  { background: #2a2a1a; color: #f0c040; }
+    .badge-declining { background: #2a1a1a; color: var(--danger); }
+    .badge-insufficient_data { background: var(--border); color: var(--muted); }
+
+    .suggestion {
+      border-left: 3px solid var(--accent);
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      background: var(--surface);
+      border-radius: 0 6px 6px 0;
+      font-size: 0.9rem;
+    }
+
+    .suggestion .suggestion-type {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .suggestion.danger { border-left-color: var(--danger); }
+
+    .weight-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 80px;
+      margin-top: 1rem;
+    }
+
+    .weight-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .weight-bar {
+      background: var(--accent);
+      border-radius: 3px 3px 0 0;
+      width: 100%;
+      opacity: 0.85;
+      min-height: 4px;
+    }
+
+    .weight-bar-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .empty { color: var(--muted); font-size: 0.9rem; padding: 1rem 0; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Lift Tracker</h1>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('programs')">Programs</button>
+  <button onclick="showTab('log')">Log Session</button>
+  <button onclick="showTab('analysis')">Exercise Analysis</button>
+  <button onclick="showTab('gaps')">Gap Analysis</button>
+</nav>
+
+<main>
+
+  <!-- Programs Tab -->
+  <div id="tab-programs" class="tab active">
+    <h2>Programs</h2>
+    <form onsubmit="submitCreateProgram(event)">
+      <div class="form-row">
+        <div class="field">
+          <label>Name</label>
+          <input id="prog-name" type="text" placeholder="e.g. PPL" required />
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <input id="prog-desc" type="text" placeholder="Optional" />
+        </div>
+        <div class="field" style="flex:0; align-self:flex-end;">
+          <button type="submit">Create</button>
+        </div>
+      </div>
+    </form>
+    <div id="programs-list"></div>
+  </div>
+
+  <!-- Log Session Tab -->
+  <div id="tab-log" class="tab">
+    <h2>Log Session</h2>
+    <form onsubmit="submitCreateSession(event)">
+      <div class="form-row">
+        <div class="field">
+          <label>Date</label>
+          <input id="session-date" type="date" required />
+        </div>
+        <div class="field">
+          <label>Program (optional)</label>
+          <select id="session-program">
+            <option value="">— None —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <input id="session-notes" type="text" placeholder="Optional" />
+        </div>
+        <div class="field" style="flex:0; align-self:flex-end;">
+          <button type="submit">Start Session</button>
+        </div>
+      </div>
+    </form>
+
+    <div id="active-session" style="display:none;">
+      <hr class="divider" />
+      <h2>Add Sets</h2>
+      <form onsubmit="submitAddSet(event)">
+        <div class="form-row">
+          <div class="field">
+            <label>Exercise</label>
+            <input id="set-exercise" type="text" placeholder="e.g. bench press" required />
+          </div>
+          <div class="field">
+            <label>Muscle Group</label>
+            <select id="set-muscle">
+              <option value="">— None —</option>
+              <option>chest</option>
+              <option>back</option>
+              <option>legs</option>
+              <option>shoulders</option>
+              <option>arms</option>
+              <option>core</option>
+            </select>
+          </div>
+          <div class="field" style="max-width:90px;">
+            <label>Weight (lbs)</label>
+            <input id="set-weight" type="number" step="0.5" min="0.5" required />
+          </div>
+          <div class="field" style="max-width:70px;">
+            <label>Reps</label>
+            <input id="set-reps" type="number" min="1" required />
+          </div>
+          <div class="field" style="max-width:70px;">
+            <label>Set #</label>
+            <input id="set-number" type="number" min="1" value="1" required />
+          </div>
+          <div class="field" style="flex:0; align-self:flex-end;">
+            <button type="submit">Add Set</button>
+          </div>
+        </div>
+      </form>
+      <div id="session-sets"></div>
+    </div>
+  </div>
+
+  <!-- Analysis Tab -->
+  <div id="tab-analysis" class="tab">
+    <h2>Exercise Analysis</h2>
+    <form onsubmit="submitAnalysis(event)">
+      <div class="form-row">
+        <div class="field">
+          <label>Exercise Name</label>
+          <input id="analysis-exercise" type="text" placeholder="e.g. squat" required />
+        </div>
+        <div class="field" style="flex:0; align-self:flex-end;">
+          <button type="submit">Analyze</button>
+        </div>
+      </div>
+    </form>
+    <div id="analysis-result"></div>
+  </div>
+
+  <!-- Gaps Tab -->
+  <div id="tab-gaps" class="tab">
+    <h2>Gap Analysis</h2>
+    <form onsubmit="submitGaps(event)">
+      <div class="form-row">
+        <div class="field">
+          <label>Program</label>
+          <select id="gaps-program" required>
+            <option value="">Select a program</option>
+          </select>
+        </div>
+        <div class="field" style="flex:0; align-self:flex-end;">
+          <button type="submit">Analyze</button>
+        </div>
+      </div>
+    </form>
+    <div id="gaps-result"></div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+  const API = '';
+  let activeSessionId = null;
+
+  // --- Navigation ---
+
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+    if (name === 'log' || name === 'gaps') loadPrograms();
+  }
+
+  // --- Toast ---
+
+  function toast(msg, duration = 2500) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), duration);
+  }
+
+  // --- API helpers ---
+
+  async function api(method, path, body) {
+    const opts = { method, headers: {} };
+    if (body) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(API + path, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || res.statusText);
+    }
+    return res.json();
+  }
+
+  // --- Programs ---
+
+  async function loadPrograms() {
+    const programs = await api('GET', '/programs');
+    renderPrograms(programs);
+    populateProgramSelects(programs);
+  }
+
+  function renderPrograms(programs) {
+    const el = document.getElementById('programs-list');
+    if (!programs.length) {
+      el.innerHTML = '<p class="empty">No programs yet.</p>';
+      return;
+    }
+    el.innerHTML = programs.map(p => `
+      <div class="card">
+        <div class="card-title">${esc(p.name)}</div>
+        <div class="card-meta">${esc(p.description || '—')}</div>
+      </div>
+    `).join('');
+  }
+
+  function populateProgramSelects(programs) {
+    ['session-program', 'gaps-program'].forEach(id => {
+      const sel = document.getElementById(id);
+      const current = sel.value;
+      const placeholder = id === 'gaps-program'
+        ? '<option value="">Select a program</option>'
+        : '<option value="">— None —</option>';
+      sel.innerHTML = placeholder + programs.map(p =>
+        `<option value="${p.id}">${esc(p.name)}</option>`
+      ).join('');
+      sel.value = current;
+    });
+  }
+
+  async function submitCreateProgram(event) {
+    event.preventDefault();
+    try {
+      await api('POST', '/programs', {
+        name: document.getElementById('prog-name').value,
+        description: document.getElementById('prog-desc').value || null,
+      });
+      toast('Program created.');
+      event.target.reset();
+      loadPrograms();
+    } catch (err) {
+      toast('Error: ' + err.message);
+    }
+  }
+
+  // --- Sessions ---
+
+  async function submitCreateSession(event) {
+    event.preventDefault();
+    try {
+      const program_id = document.getElementById('session-program').value;
+      const session = await api('POST', '/sessions', {
+        date: document.getElementById('session-date').value,
+        program_id: program_id ? parseInt(program_id) : null,
+        notes: document.getElementById('session-notes').value || null,
+      });
+      activeSessionId = session.id;
+      document.getElementById('active-session').style.display = 'block';
+      document.getElementById('session-sets').innerHTML = '<p class="empty">No sets yet.</p>';
+      toast('Session started.');
+    } catch (err) {
+      toast('Error: ' + err.message);
+    }
+  }
+
+  async function submitAddSet(event) {
+    event.preventDefault();
+    if (!activeSessionId) return;
+    try {
+      const workout_set = await api('POST', `/sessions/${activeSessionId}/sets`, {
+        exercise: document.getElementById('set-exercise').value,
+        muscle_group: document.getElementById('set-muscle').value || null,
+        weight: parseFloat(document.getElementById('set-weight').value),
+        reps: parseInt(document.getElementById('set-reps').value),
+        set_number: parseInt(document.getElementById('set-number').value),
+      });
+      // Auto-increment set number
+      const setNumInput = document.getElementById('set-number');
+      setNumInput.value = parseInt(setNumInput.value) + 1;
+      refreshSessionSets();
+      toast('Set added.');
+    } catch (err) {
+      toast('Error: ' + err.message);
+    }
+  }
+
+  async function refreshSessionSets() {
+    if (!activeSessionId) return;
+    const session = await api('GET', `/sessions/${activeSessionId}`);
+    const el = document.getElementById('session-sets');
+    if (!session.sets.length) {
+      el.innerHTML = '<p class="empty">No sets yet.</p>';
+      return;
+    }
+    el.innerHTML = `
+      <table class="sets-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Exercise</th><th>Muscle Group</th><th>Weight</th><th>Reps</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${session.sets.map(s => `
+            <tr>
+              <td>${s.set_number}</td>
+              <td>${esc(s.exercise)}</td>
+              <td>${esc(s.muscle_group || '—')}</td>
+              <td>${s.weight} lbs</td>
+              <td>${s.reps}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // --- Analysis ---
+
+  async function submitAnalysis(event) {
+    event.preventDefault();
+    const name = document.getElementById('analysis-exercise').value.trim().toLowerCase();
+    const el = document.getElementById('analysis-result');
+    try {
+      const [progression, plateau] = await Promise.all([
+        api('GET', `/exercises/${encodeURIComponent(name)}/progression`),
+        api('GET', `/exercises/${encodeURIComponent(name)}/plateau`),
+      ]);
+      el.innerHTML = renderAnalysis(name, progression, plateau);
+    } catch (err) {
+      el.innerHTML = `<p class="empty">Error: ${esc(err.message)}</p>`;
+    }
+  }
+
+  function renderAnalysis(name, progression, plateau) {
+    const trend = progression.trend;
+    const badgeClass = 'badge badge-' + trend;
+    const trendLabel = trend.replace('_', ' ');
+
+    const chartHtml = renderChart(progression.max_weights);
+
+    const plateauHtml = plateau.plateau
+      ? `<div class="suggestion danger">
+           <div class="suggestion-type">Plateau Detected</div>
+           Stuck at <strong>${plateau.stuck_weight} lbs</strong> for <strong>${plateau.sessions_stalled}</strong> consecutive sessions.
+         </div>`
+      : `<div class="suggestion">
+           <div class="suggestion-type">Plateau</div>
+           No plateau detected.
+         </div>`;
+
+    return `
+      <div class="card">
+        <div class="card-title" style="margin-bottom:0.5rem;">
+          ${esc(name)} &nbsp;<span class="${badgeClass}">${trendLabel}</span>
+        </div>
+        <div class="card-meta">${progression.sessions_analyzed} session(s) analyzed</div>
+        ${chartHtml}
+      </div>
+      ${plateauHtml}
+    `;
+  }
+
+  function renderChart(maxWeights) {
+    if (!maxWeights.length) return '';
+    const peak = Math.max(...maxWeights.map(m => m.weight));
+    return `
+      <div class="weight-chart">
+        ${maxWeights.map(m => {
+          const pct = peak > 0 ? (m.weight / peak) * 100 : 0;
+          const dateLabel = m.date.slice(5); // MM-DD
+          return `
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="height:${pct}%;" title="${m.weight} lbs"></div>
+              <div class="weight-bar-label">${dateLabel}</div>
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // --- Gaps ---
+
+  async function submitGaps(event) {
+    event.preventDefault();
+    const program_id = document.getElementById('gaps-program').value;
+    if (!program_id) return;
+    const el = document.getElementById('gaps-result');
+    try {
+      const suggestions = await api('GET', `/programs/${program_id}/gaps`);
+      if (!suggestions.length) {
+        el.innerHTML = '<p class="empty">No issues detected. Keep it up.</p>';
+        return;
+      }
+      el.innerHTML = suggestions.map(s => `
+        <div class="suggestion ${s.type === 'insufficient_recovery' ? 'danger' : ''}">
+          <div class="suggestion-type">${esc(s.type.replace(/_/g, ' '))}</div>
+          ${esc(s.suggestion)}
+        </div>
+      `).join('');
+    } catch (err) {
+      el.innerHTML = `<p class="empty">Error: ${esc(err.message)}</p>`;
+    }
+  }
+
+  // --- Utilities ---
+
+  function esc(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // --- Init ---
+
+  document.getElementById('session-date').value = new Date().toISOString().slice(0, 10);
+  loadPrograms();
+</script>
+</body>
+</html>

@@ -1,8 +1,10 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from lift_tracker import database, analysis
+from lift_tracker.database import DuplicateError
 from lift_tracker.models import (
     ProgramCreate,
     ProgramResponse,
@@ -13,12 +15,13 @@ from lift_tracker.models import (
     SetResponse,
 )
 
-app = FastAPI(title="Lift Tracker")
-
-
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     database.init_db()
+    yield
+
+
+app = FastAPI(title="Lift Tracker", lifespan=lifespan)
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -33,7 +36,10 @@ def serve_ui():
 
 @app.post("/programs", response_model=ProgramResponse, status_code=201)
 def create_program(body: ProgramCreate):
-    return database.create_program(body.name, body.description)
+    try:
+        return database.create_program(body.name, body.description)
+    except DuplicateError as err:
+        raise HTTPException(status_code=409, detail=str(err))
 
 
 @app.get("/programs", response_model=list[ProgramResponse])
