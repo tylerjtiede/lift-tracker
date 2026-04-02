@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: lift-tracker
+    runtime: python
+    buildCommand: pip install -e .
+    startCommand: uvicorn src.lift_tracker.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DB_PATH
+        value: /var/data/lift_tracker.db
+      - key: ENV
+        value: production
+    disk:
+      name: lift-tracker-db
+      mountPath: /var/data
+      sizeGB: 1
