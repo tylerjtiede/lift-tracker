@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 
 def get_connection() -> sqlite3.Connection:
+    """Open and return a SQLite connection using DB_PATH from the environment."""
     db_path = os.getenv("DB_PATH", "lift_tracker.db")
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -12,6 +13,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 def init_db() -> None:
+    """Create all tables if they don't exist. Called once at app startup."""
     with get_connection() as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS programs (
@@ -57,6 +59,7 @@ class DuplicateError(Exception):
 
 
 def create_program(name: str, description: str | None) -> dict:
+    """Insert a new program. Raises DuplicateError if the name already exists."""
     with get_connection() as conn:
         try:
             cursor = conn.execute(
@@ -100,6 +103,7 @@ def create_session(program_id: int | None, date: str, notes: str | None) -> dict
 
 
 def get_session_with_sets(session_id: int) -> dict | None:
+    """Return a session with its sets nested under a 'sets' key, or None if not found."""
     with get_connection() as conn:
         session_row = conn.execute(
             "SELECT * FROM sessions WHERE id = ?", (session_id,)
@@ -125,6 +129,7 @@ def add_set(
     reps: int,
     set_number: int,
 ) -> dict:
+    """Insert a set. Exercise name is normalized to lowercase on write."""
     with get_connection() as conn:
         cursor = conn.execute(
             """INSERT INTO sets
@@ -141,6 +146,7 @@ def add_set(
 # --- Exercise queries ---
 
 def get_exercise_history(exercise: str) -> list[dict]:
+    """Return all sets for an exercise across all sessions, ordered by date. Includes session_date."""
     with get_connection() as conn:
         rows = conn.execute(
             """SELECT s.*, se.date as session_date
@@ -154,6 +160,7 @@ def get_exercise_history(exercise: str) -> list[dict]:
 
 
 def get_program_sessions(program_id: int) -> list[dict]:
+    """Return all sessions for a program, each with sets nested under a 'sets' key."""
     with get_connection() as conn:
         session_rows = conn.execute(
             "SELECT * FROM sessions WHERE program_id = ? ORDER BY date ASC",
